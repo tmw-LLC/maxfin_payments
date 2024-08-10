@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan Repayment Form</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <!-- Include Select2 CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .form-container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            margin: auto;
+        }
+        .logo img {
+            display: block;
+            margin: 0 auto 20px;
+            max-width: 300px; /* Doubled the size */
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input, select, button, textarea {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        select {
+            margin-bottom: 20px;
+        }
+        .spacer {
+            margin-bottom: 20px;
+        }
+        .button-group {
+            display: flex;
+            align-items: center;
+        }
+        .button-group img {
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            margin-left: 10px;
+        }
+        button {
+            background-color: #03588C;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #F2AF5C;
+        }
+        .note {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        #clientDetails {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="form-container">
+    <div class="logo">
+        <img src="max.jpg" alt="Max Logo">
+    </div>
+    <h2>Loan Repayment Form</h2>
+    <form id="loanRepaymentForm">
+        <label for="phoneNumber">Client Phone Number *</label>
+        <div class="button-group">
+            <input type="text" id="phoneNumber" name="phoneNumber" placeholder="Enter client phone number" required>
+            <img src="mag.svg" id="fetchClientDetailsIcon" alt="Fetch Client Details">
+        </div>
+
+        <div id="clientDetails" class="spacer"></div>
+
+        <label for="clientId">Client ID</label>
+        <div class="button-group">
+            <input type="text" id="clientId" name="clientId" placeholder="Client ID">
+            <img src="mag.svg" id="fetchClientDetailsIconClientId" alt="Fetch Client Details">
+        </div>
+
+        <label for="loanId">Loan ID *</label>
+        <input type="text" id="loanId" name="loanId" placeholder="Enter loan ID" required>
+
+        <label for="transactionDate">Transaction Date *</label>
+        <input type="date" id="transactionDate" name="transactionDate" required>
+
+        <label for="transactionAmount">Transaction Amount *</label>
+        <input type="number" id="transactionAmount" name="transactionAmount" placeholder="Enter transaction amount" required>
+
+        <label for="receiptNumber">Receipt Number</label>
+        <input type="text" id="receiptNumber" name="receiptNumber" placeholder="Enter receipt number">
+
+        <label for="note">Note</label>
+        <textarea id="note" name="note" placeholder="Enter any notes here" rows="3"></textarea>
+
+        <div class="spacer"></div>
+
+        <button type="submit">Submit</button>
+
+        <p class="note">Please ensure all the information is accurate before submitting.</p>
+    </form>
+</div>
+
+<!-- Include jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Include Select2 JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        // Initialize Select2 for payment type select
+        $('.payment-type-select').select2();
+
+        // Fetch client details based on phone number
+        $('#fetchClientDetailsIcon').on('click', function() {
+            var phoneNumber = $('#phoneNumber').val();
+            if (phoneNumber) {
+                $.ajax({
+                    url: `https://maxfin.upsyd.one:8443/fineract-provider/api/v1/search?query=${phoneNumber}&tenantIdentifier=default&pretty=true`,
+                    type: 'GET',
+                    headers: {
+                        Authorization: 'Basic bWlmb3M6cGFzc3dvcmQ=' // Basic authentication
+                    },
+                    success: function(clientResponse) {
+                        var client = clientResponse[0]; // Assuming the first element contains the details
+                        if (client) {
+                            $('#clientId').val(client.entityAccountNo);
+                            $('#clientDetails').html(`
+                                <p><strong>Client ID:</strong> ${client.entityAccountNo}</p>
+                                <p><strong>NIN:</strong> ${client.entityExternalId}</p>
+                                <p><strong>Name:</strong> ${client.entityName}</p>
+                                <p><strong>Phone:</strong> ${client.entityMobileNo}</p>
+                            `);
+                        } else {
+                            $('#clientId').val('');
+                            $('#clientDetails').html('<p>No client details found for this phone number.</p>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error fetching client details:', error);
+                        alert('An error occurred while fetching client details. Please try again.');
+                    }
+                });
+            }
+        });
+
+        // Fetch loan details and set Loan ID
+        $('#fetchClientDetailsIconClientId').on('click', function() {
+            var clientId = $('#clientId').val();
+            if (clientId) {
+                $.ajax({
+                    url: `https://maxfin.upsyd.one:8443/fineract-provider/api/v1/clients/${clientId}/accounts?fields=loanAccounts,savingsAccounts&tenantIdentifier=default&pretty=true`,
+                    type: 'GET',
+                    headers: {
+                        Authorization: 'Basic bWlmb3M6cGFzc3dvcmQ=' // Basic authentication
+                    },
+                    success: function(clientAccountsResponse) {
+                        console.log('Client accounts details:', clientAccountsResponse);
+
+                        var loanAccount = clientAccountsResponse.loanAccounts?.[0]; // Assuming the first loan account
+                        if (loanAccount) {
+                            $('#loanId').val(loanAccount.accountNo);
+                        } else {
+                            $('#loanId').val('');
+                            $('#clientDetails').append('<p>No loan accounts found for this client.</p>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error fetching loan details:', error);
+                        alert('An error occurred while fetching loan details. Please try again.');
+                    }
+                });
+            }
+        });
+
+        // Handle form submission
+        $('#loanRepaymentForm').on('submit', function(e) {
+            e.preventDefault();
+
+            // PIN verification
+            var pin = prompt('Enter PIN to confirm submission:');
+            if (pin === '1812') {
+                // Get form values
+                var loanId = $('#loanId').val().replace(/^0+/, ''); // Trim leading zeros
+                var transactionDate = $('#transactionDate').val();
+                var transactionAmount = $('#transactionAmount').val();
+                var receiptNumber = $('#receiptNumber').val() || ''; // Make receipt number optional
+                var note = $('#note').val();
+                
+                // Format date
+                var formattedDate = new Date(transactionDate).toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric'
+                });
+
+                // Prepare payload
+                var payload = {
+                    dateFormat: "dd MMMM yyyy",
+                    locale: "en",
+                    transactionDate: formattedDate,
+                    transactionAmount: transactionAmount,
+                    paymentTypeId: "1", // Default value
+                    note: note,
+                    receiptNumber: receiptNumber
+                };
+
+                // Make POST request
+                $.ajax({
+                    url: `https://maxfin.upsyd.one:8443/fineract-provider/api/v1/loans/${loanId}/transactions?command=repayment`,
+                    type: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'insomnia/8.3.0',
+                        'accept': 'application/json',
+                        'authorization': 'Basic bWlmb3M6cGFzc3dvcmQ=',
+                        'command': 'repayment',
+                        'fineract-platform-tenantid': 'default'
+                    },
+                    data: JSON.stringify(payload),
+                    success: function(response) {
+                        console.log('Transaction successful:', response);
+                        // Redirect to thank you page
+                        window.location.href = 'thankyou.html';
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error submitting transaction:', error);
+                        alert('An error occurred while submitting the transaction. Please try again.');
+                    }
+                });
+            } else {
+                alert('Incorrect PIN. Submission failed.');
+            }
+        });
+    });
+</script>
+</body>
+</html>
