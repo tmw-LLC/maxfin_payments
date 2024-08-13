@@ -29,7 +29,7 @@
         .logo img {
             display: block;
             margin: 0 auto 20px;
-            max-width: 300px; /* Doubled the size */
+            max-width: 300px;
         }
         h2 {
             text-align: center;
@@ -105,7 +105,7 @@
         <label for="clientId">Client ID</label>
         <div class="button-group">
             <input type="text" id="clientId" name="clientId" placeholder="Client ID">
-            <img src="mag.svg" id="fetchClientDetailsIconClientId" alt="Fetch Client Details">
+            <img src="mag.svg" id="fetchLoanDetailsIcon" alt="Fetch Loan Details">
         </div>
 
         <label for="loanId">Loan ID *</label>
@@ -138,7 +138,7 @@
 
 <script>
     $(document).ready(function() {
-        // Initialize Select2 for payment type select
+        // Initialize Select2 for dropdowns
         $('.payment-type-select').select2();
 
         // Fetch client details based on phone number
@@ -149,7 +149,7 @@
                     url: `https://maxfin.upsyd.one:8443/fineract-provider/api/v1/search?query=${phoneNumber}&tenantIdentifier=default&pretty=true`,
                     type: 'GET',
                     headers: {
-                        Authorization: 'Basic bWlmb3M6cGFzc3dvcmQ=' // Basic authentication
+                        Authorization: 'Basic bWlmb3M6cGFzc3dvcmQ='
                     },
                     success: function(clientResponse) {
                         var client = clientResponse[0]; // Assuming the first element contains the details
@@ -174,22 +174,26 @@
             }
         });
 
-        // Fetch loan details and set Loan ID
-        $('#fetchClientDetailsIconClientId').on('click', function() {
+        // Fetch loan details based on client ID
+        $('#fetchLoanDetailsIcon').on('click', function() {
             var clientId = $('#clientId').val();
             if (clientId) {
                 $.ajax({
                     url: `https://maxfin.upsyd.one:8443/fineract-provider/api/v1/clients/${clientId}/accounts?fields=loanAccounts,savingsAccounts&tenantIdentifier=default&pretty=true`,
                     type: 'GET',
                     headers: {
-                        Authorization: 'Basic bWlmb3M6cGFzc3dvcmQ=' // Basic authentication
+                        Authorization: 'Basic bWlmb3M6cGFzc3dvcmQ='
                     },
                     success: function(clientAccountsResponse) {
-                        console.log('Client accounts details:', clientAccountsResponse);
-
-                        var loanAccount = clientAccountsResponse.loanAccounts?.[0]; // Assuming the first loan account
-                        if (loanAccount) {
-                            $('#loanId').val(loanAccount.accountNo);
+                        var loanAccounts = clientAccountsResponse.loanAccounts;
+                        if (loanAccounts && loanAccounts.length > 0) {
+                            var specificLoan = loanAccounts.find(account => account.status.id === 300);
+                            if (specificLoan) {
+                                $('#loanId').val(specificLoan.accountNo);
+                            } else {
+                                $('#loanId').val('');
+                                $('#clientDetails').append('<p>No loan accounts found with the specified status ID.</p>');
+                            }
                         } else {
                             $('#loanId').val('');
                             $('#clientDetails').append('<p>No loan accounts found for this client.</p>');
